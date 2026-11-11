@@ -1,0 +1,531 @@
+ <!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Tracker Mahasiswa</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+font-family:Arial,sans-serif;
+margin:0;
+background:#f4f7fb;
+color:#222
+}
+
+header{
+background:#4f46e5;
+color:white;
+padding:22px;
+text-align:center
+}
+
+.container{
+max-width:1000px;
+margin:25px auto;
+padding:0 15px
+}
+
+.card{
+background:white;
+border-radius:14px;
+padding:20px;
+margin-bottom:20px;
+box-shadow:0 3px 12px #00000012
+}
+
+h1,h2{
+margin-top:0
+}
+
+.form{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:10px
+}
+
+input,select,button{
+padding:11px;
+border:1px solid #ddd;
+border-radius:8px;
+font-size:14px
+}
+
+button{
+background:#4f46e5;
+color:white;
+border:none;
+cursor:pointer
+}
+
+button:hover{
+opacity:.9
+}
+
+table{
+width:100%;
+border-collapse:collapse
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #eee;
+text-align:left;
+font-size:14px
+}
+
+th{
+background:#f1f3ff
+}
+
+.status{
+padding:5px 8px;
+border-radius:20px;
+font-size:12px
+}
+
+.selesai{
+background:#dcfce7;
+color:#166534
+}
+
+.belum{
+background:#fee2e2;
+color:#991b1b
+}
+
+.stats{
+display:flex;
+gap:12px;
+flex-wrap:wrap
+}
+
+.stat{
+flex:1;
+min-width:150px;
+background:#f8fafc;
+padding:15px;
+border-radius:10px
+}
+
+.stat b{
+font-size:25px;
+display:block
+}
+
+@media(max-width:700px){
+.form{
+grid-template-columns:1fr 1fr
+}
+
+table{
+font-size:12px
+}
+
+.container{
+margin-top:15px
+}
+}
+
+.school-logo {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.school-logo img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+}
+</style>
+</head>
+
+<body>
+<div class="school-logo">
+    <img src="c:\Users\User\Pictures\logo.jpeg" alt="Logo STIKes Mitra Sejati">
+</div>
+
+<header>
+
+<h1>📚 Habit Tracker Mahasiswa</h1>
+<p>Catat dan pantau kebiasaan mahasiswa setiap hari</p>
+<p><b>STIKes Mitra Sejati</b> • Prodi Informatika Medis
+</p>
+
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<h2>Ringkasan</h2>
+
+<div class="stats">
+
+<div class="stat">
+Total Data
+<b id="total">0</b>
+</div>
+
+<div class="stat">
+Selesai
+<b id="done">0</b>
+</div>
+
+<div class="stat">
+Belum
+<b id="todo">0</b>
+</div>
+
+</div>
+</div>
+
+
+<div class="card">
+
+<h2>➕ Tambah Habit</h2>
+
+<div class="form">
+
+<input id="nama" placeholder="Nama mahasiswa">
+
+<input id="tanggal" type="date">
+
+<select id="habit">
+
+<option>Hadir Kuliah</option>
+<option>Belajar</option>
+<option>Mengerjakan Tugas</option>
+<option>Membaca</option>
+<option>Olahraga</option>
+
+</select>
+
+<select id="status">
+
+<option>Selesai</option>
+<option>Belum</option>
+
+</select>
+
+</div>
+
+<br>
+
+<button onclick="tambahData()">
+Tambah Data
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h2>📋 Data Habit</h2>
+
+<input
+id="search"
+oninput="tampilkan()"
+placeholder="Cari nama atau kebiasaan..."
+style="width:100%;margin-bottom:12px"
+>
+
+<div style="overflow-x:auto">
+
+<table>
+
+<thead>
+
+<tr>
+<th>No</th>
+<th>Nama</th>
+<th>Tanggal</th>
+<th>Habit</th>
+<th>Status</th>
+<th>Aksi</th>
+</tr>
+
+</thead>
+
+<tbody id="data"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+const nama = [
+"Aulin","Aulin","Aulin","Aulin","Aulin",
+"Aulin","Aulin","Aulin","Aulin","Aulin",
+
+"Aprilia Puspita",
+"Aprilia Puspita",
+"Aprilia Puspita",
+"Aprilia Puspita",
+"Aprilia Puspita",
+
+"Genderijon",
+"Genderijon",
+"Genderijon",
+"Genderijon",
+"Genderijon",
+
+"Frisca",
+"Frisca",
+"Frisca",
+"Frisca",
+"Frisca",
+
+"Azwa",
+"Azwa",
+"Azwa",
+"Azwa",
+"Azwa"
+];
+
+const habits=[
+"Hadir Kuliah",
+"Belajar",
+"Mengerjakan Tugas",
+"Membaca",
+"Olahraga"
+];
+
+let data=
+JSON.parse(localStorage.getItem("habitData")) || [];
+
+
+if(data.length===0){
+
+for(let i=0;i<50;i++){
+
+data.push({
+
+id:Date.now()+i,
+
+nama:nama[i%nama.length],
+
+tanggal:
+`2026-10-${String((i%10)+1).padStart(2,"0")}`,
+
+habit:habits[i%5],
+
+status:i%4===0?"Belum":"Selesai"
+
+});
+
+}
+
+simpan();
+
+}
+
+
+function simpan(){
+
+localStorage.setItem(
+"habitData",
+JSON.stringify(data)
+);
+
+}
+
+
+function tampilkan(){
+
+const q=
+document.getElementById("search")
+.value
+.toLowerCase();
+
+const tbody=
+document.getElementById("data");
+
+tbody.innerHTML="";
+
+
+const hasil=data.filter(x=>
+(x.nama+" "+x.habit)
+.toLowerCase()
+.includes(q)
+);
+
+
+hasil.forEach((x,i)=>{
+
+tbody.innerHTML+=`
+
+<tr>
+
+<td>${i+1}</td>
+
+<td>${x.nama}</td>
+
+<td>${x.tanggal}</td>
+
+<td>${x.habit}</td>
+
+<td>
+
+<span class="status ${
+x.status==="Selesai"
+?"selesai"
+:"belum"
+}">
+
+${x.status}
+
+</span>
+
+</td>
+
+<td>
+
+<button
+onclick="ubahStatus(${x.id})">
+
+${
+x.status==="Selesai"
+?"Belum"
+:"Selesai"
+}
+
+</button>
+
+<button
+onclick="hapusData(${x.id})"
+style="background:#dc2626">
+
+Hapus
+
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+});
+
+
+document.getElementById("total")
+.textContent=data.length;
+
+document.getElementById("done")
+.textContent=
+data.filter(x=>
+x.status==="Selesai"
+).length;
+
+document.getElementById("todo")
+.textContent=
+data.filter(x=>
+x.status==="Belum"
+).length;
+
+}
+
+
+function tambahData(){
+
+const n=
+document.getElementById("nama")
+.value.trim();
+
+const t=
+document.getElementById("tanggal")
+.value;
+
+const h=
+document.getElementById("habit")
+.value;
+
+const s=
+document.getElementById("status")
+.value;
+
+
+if(!n||!t){
+
+alert(
+"Nama dan tanggal harus diisi!"
+);
+
+return;
+
+}
+
+
+data.unshift({
+
+id:Date.now(),
+
+nama:n,
+
+tanggal:t,
+
+habit:h,
+
+status:s
+
+});
+
+
+simpan();
+
+tampilkan();
+
+document.getElementById("nama")
+.value="";
+
+}
+
+
+function ubahStatus(id){
+
+const x=
+data.find(x=>x.id===id);
+
+x.status=
+x.status==="Selesai"
+?"Belum"
+:"Selesai";
+
+simpan();
+
+tampilkan();
+
+}
+
+
+function hapusData(id){
+
+if(confirm("Hapus data ini?")){
+
+data=
+data.filter(x=>x.id!==id);
+
+simpan();
+
+tampilkan();
+
+}
+
+}
+
+
+tampilkan();
+
+</script>
+
+</body>
+</html>
