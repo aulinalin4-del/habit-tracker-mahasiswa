@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Tracker Mahasiswa</title>
+
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;margin:0;background:#f4f7fb;color:#222}
+header{background:#4f46e5;color:white;padding:22px;text-align:center}
+.container{max-width:1000px;margin:25px auto;padding:0 15px}
+.card{background:white;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 3px 12px #00000012}
+h1,h2{margin-top:0}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+input,select,button{padding:11px;border:1px solid #ddd;border-radius:8px;font-size:14px}
+button{background:#4f46e5;color:white;border:none;cursor:pointer}
+button:hover{opacity:.9}
+button:disabled{opacity:.5;cursor:not-allowed}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+th{background:#f1f3ff}
+.status{padding:5px 8px;border-radius:20px;font-size:12px}
+.selesai{background:#dcfce7;color:#166534}
+.belum{background:#fee2e2;color:#991b1b}
+.stats{display:flex;gap:12px;flex-wrap:wrap}
+.stat{flex:1;min-width:150px;background:#f8fafc;padding:15px;border-radius:10px}
+.stat b{font-size:25px;display:block}
+.school-logo{text-align:center;margin:10px 0}
+.school-logo img{width:90px;height:90px;object-fit:contain}
+.conn{font-size:12px;margin-top:8px;opacity:.9}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#eef2ff;color:#3730a3;padding:7px 12px;border-radius:20px;font-size:13px}
+.chip b{margin-left:4px}
+@media(max-width:700px){
+  .form{grid-template-columns:1fr 1fr}
+  table{font-size:12px}
+  .container{margin-top:15px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="school-logo">
+  <!-- Upload file logo.jpeg ke repository yang sama dengan index.html -->
+  <img src="logo.jpeg" alt="Logo STIKes Mitra Sejati" onerror="this.style.display='none'">
+</div>
+
+<header>
+  <h1>📚 Habit Tracker Mahasiswa</h1>
+  <p>Catat dan pantau kebiasaan mahasiswa setiap hari</p>
+  <p><b>STIKes Mitra Sejati</b> • Prodi Informatika Medis</p>
+  <div class="conn" id="conn">⏳ Menghubungkan ke database...</div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Ringkasan</h2>
+    <div class="stats">
+      <div class="stat">Total Data<b id="total">0</b></div>
+      <div class="stat">Selesai<b id="done">0</b></div>
+      <div class="stat">Belum<b id="todo">0</b></div>
+      <div class="stat">Mahasiswa Mengisi<b id="people">0</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>👥 Yang Sudah Mengisi</h2>
+    <div class="chips" id="rekap">
+      <span style="color:#888">Belum ada data.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>➕ Tambah Habit</h2>
+    <div class="form">
+      <input id="nama" placeholder="Nama mahasiswa">
+      <input id="tanggal" type="date">
+      <select id="habit">
+        <option>Hadir Kuliah</option>
+        <option>Belajar</option>
+        <option>Mengerjakan Tugas</option>
+        <option>Membaca</option>
+        <option>Olahraga</option>
+      </select>
+      <select id="status">
+        <option>Selesai</option>
+        <option>Belum</option>
+      </select>
+    </div>
+    <br>
+    <button id="btnTambah" onclick="tambahData()">Tambah Data</button>
+  </div>
+
+  <div class="card">
+    <h2>📋 Data Habit</h2>
+    <input id="search" oninput="tampilkan()" placeholder="Cari nama atau kebiasaan..." style="width:100%;margin-bottom:12px">
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th><th>Nama</th><th>Tanggal</th><th>Habit</th><th>Status</th><th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="data"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, doc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ====== GANTI DENGAN CONFIG FIREBASE ANDA ======
+   Firebase Console > Project settings > Your apps > Web app > Config */
+const firebaseConfig = {
+  apiKey: "AIzaSyAesLiv9w4i0Zpy846l3h_zNhR755Dkfxc",
+  authDomain: "habit-tracker-mahasiswa.firebaseapp.com",
+  databaseURL: "https://habit-tracker-mahasiswa-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "habit-tracker-mahasiswa",
+  storageBucket: "habit-tracker-mahasiswa.firebasestorage.app",
+  messagingSenderId: "453353392284",
+  appId: "1:453353392284:web:5910d9db2e6597a6334559"
+};
+/* ================================================ */
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const col = collection(db, "habitData");
+
+let data = [];
+const $ = id => document.getElementById(id);
+
+// tanggal default = hari ini
+$("tanggal").value = new Date().toISOString().slice(0, 10);
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// Dengarkan perubahan data secara realtime (semua orang melihat data yang sama)
+onSnapshot(
+  query(col, orderBy("dibuat", "desc")),
+  snap => {
+    data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    $("conn").textContent = "🟢 Terhubung • data tersinkron realtime";
+    tampilkan();
+  },
+  err => {
+    console.error(err);
+    $("conn").textContent = "🔴 Gagal terhubung ke database (cek config & rules Firebase)";
+  }
+);
+
+function tampilkan(){
+  const q = $("search").value.toLowerCase();
+  const hasil = data.filter(x => ((x.nama||"") + " " + (x.habit||"")).toLowerCase().includes(q));
+
+  $("data").innerHTML = hasil.map((x, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${esc(x.nama)}</td>
+      <td>${esc(x.tanggal)}</td>
+      <td>${esc(x.habit)}</td>
+      <td><span class="status ${x.status==="Selesai"?"selesai":"belum"}">${esc(x.status)}</span></td>
+      <td>
+        <button onclick="ubahStatus('${x.id}')">${x.status==="Selesai"?"Belum":"Selesai"}</button>
+        <button onclick="hapusData('${x.id}')" style="background:#dc2626">Hapus</button>
+      </td>
+    </tr>`).join("");
+
+  $("total").textContent = data.length;
+  $("done").textContent = data.filter(x => x.status==="Selesai").length;
+  $("todo").textContent = data.filter(x => x.status==="Belum").length;
+
+  // Rekap per mahasiswa (nama dianggap sama tanpa peduli huruf besar/kecil)
+  const peta = {};
+  data.forEach(x => {
+    const k = (x.nama||"").trim().toLowerCase();
+    if(!k) return;
+    if(!peta[k]) peta[k] = { nama: x.nama.trim(), jumlah: 0 };
+    peta[k].jumlah++;
+  });
+  const list = Object.values(peta).sort((a,b) => b.jumlah - a.jumlah);
+  $("people").textContent = list.length;
+  $("rekap").innerHTML = list.length
+    ? list.map(p => `<span class="chip">${esc(p.nama)}<b>${p.jumlah}</b></span>`).join("")
+    : '<span style="color:#888">Belum ada data.</span>';
+}
+
+window.tampilkan = tampilkan;
+
+window.tambahData = async function(){
+  const n = $("nama").value.trim();
+  const t = $("tanggal").value;
+  if(!n || !t){ alert("Nama dan tanggal harus diisi!"); return; }
+
+  const btn = $("btnTambah");
+  btn.disabled = true;
+  try{
+    await addDoc(col, {
+      nama: n,
+      tanggal: t,
+      habit: $("habit").value,
+      status: $("status").value,
+      dibuat: serverTimestamp()
+    });
+    $("nama").value = "";
+  }catch(e){
+    console.error(e);
+    alert("Gagal menyimpan data. Cek koneksi / rules Firebase.");
+  }
+  btn.disabled = false;
+};
+
+window.ubahStatus = async function(id){
+  const x = data.find(x => x.id === id);
+  if(!x) return;
+  try{
+    await updateDoc(doc(db, "habitData", id), {
+      status: x.status === "Selesai" ? "Belum" : "Selesai"
+    });
+  }catch(e){ alert("Gagal mengubah status."); }
+};
+
+window.hapusData = async function(id){
+  if(!confirm("Hapus data ini?")) return;
+  try{
+    await deleteDoc(doc(db, "habitData", id));
+  }catch(e){ alert("Gagal menghapus data."); }
+};
+</script>
+
+</body>
+</html>
